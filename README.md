@@ -1,3 +1,5 @@
+<img width="1024" height="576" alt="illusionry" src="https://github.com/user-attachments/assets/20360592-7ad1-4c05-b914-0b26e28960db" />
+
 # Illusionry — VM Evasion Toolkit for Malware Analysis Labs
 
 A layered toolkit for making a VMware guest appear to be physical hardware, defeating common malware anti-analysis / sandbox-evasion checks so that samples run their full payload for analysis rather than self-destructing.
@@ -399,3 +401,4 @@ Remove-Item -Path HKLM:\SOFTWARE\QUANTUMHardware -Recurse
 - **WMI provider host (WmiPrvSE.exe):** Native COM-based WMI calls that go directly to the WMI provider host (not through PowerShell) will not be intercepted by the profile hooks. These are addressed by the registry patches in Stage 1.
 - **64-bit vs 32-bit PowerShell:** The profile deploys to the 64-bit PowerShell path. 32-bit PowerShell (`%SystemRoot%\SysWOW64\WindowsPowerShell\v1.0\`) has a separate profile location. If 32-bit PS coverage is needed, copy the profile there as well.
 - **PowerShell 7 (pwsh.exe):** Not covered by these hooks. Separate profile deployment would be required for `$PSHOME\profile.ps1` under the PowerShell 7 install path.
+
