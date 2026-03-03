@@ -153,9 +153,9 @@ Write-Host "[SET] Owner = $newOwner" -ForegroundColor Green
 
 # Organization
 Write-Host "`nSTEP 4: Organization" -ForegroundColor Cyan
-Write-Host "  Examples: QUANTUM.CORP, Contoso Corporation"
-$newOrg = Read-Host "Enter organization (or press Enter for 'QUANTUM.CORP')"
-if ([string]::IsNullOrWhiteSpace($newOrg)) { $newOrg = "QUANTUM.CORP" }
+Write-Host "  Examples: ILLUSION.CORP, Contoso Corporation"
+$newOrg = Read-Host "Enter organization (or press Enter for 'ILLUSION.CORP')"
+if ([string]::IsNullOrWhiteSpace($newOrg)) { $newOrg = "ILLUSION.CORP" }
 Write-Host "[SET] Organization = $newOrg" -ForegroundColor Green
 
 # Manufacturer
