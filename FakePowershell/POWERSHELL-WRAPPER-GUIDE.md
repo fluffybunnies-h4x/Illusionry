@@ -4,12 +4,11 @@
 
 The C# wrapper gives you **complete control** over all PowerShell execution:
 
-✅ **System-wide** - Affects ALL PowerShell calls, including from malware  
-✅ **Transparent** - Malware never knows it's being intercepted  
-✅ **Configurable** - Strip `-NoProfile` or pass it through  
-✅ **Auto-loading** - WMI hook loads with every PowerShell instance  
-✅ **Permanent** - Works until you roll back  
-✅ **Clean** - Easy to deploy and remove  
+✅ **System-wide** - Affects ALL PowerShell calls, including from malware
+✅ **Transparent** - Malware never knows it's being intercepted
+✅ **Configurable** - Strip `-NoProfile` or pass it through
+✅ **Permanent** - Works until you roll back
+✅ **Clean** - Easy to deploy and remove
 
 ---
 
@@ -23,13 +22,12 @@ Bat calls: powershell.exe -NoProfile -Command "Get-CimInstance..."
 Windows loads: C:\Windows\System32\...\powershell.exe (YOUR WRAPPER)
   ↓
 Wrapper:
-  1. Loads WMIHook.dll into current process
-  2. Strips -NoProfile flag (configurable)
-  3. Calls powershell_real.exe with modified args
+  1. Strips -NoProfile flag
+  2. Calls powershell_quantum.exe with modified args
   ↓
-Real PowerShell starts with hook loaded and no -NoProfile
+Real PowerShell starts with no -NoProfile
   ↓
-CimD module loads (because -NoProfile was stripped)
+Profile (WMI hooks) loads (because -NoProfile was stripped)
   ↓
 Get-CimInstance returns "Dell Inc."
   ↓
@@ -66,14 +64,13 @@ csc /out:powershell.exe /platform:x64 /optimize+ PowerShellWrapper.cs
 Open `PowerShellWrapper.cs` and check these settings:
 
 ```csharp
-const string HOOK_DLL_PATH = @"C:\ProgramData\Quantum Research\Hooks\WMIHook.dll";
-const string REAL_POWERSHELL = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell_real.exe";
+const string REAL_POWERSHELL = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell_quantum.exe";
 const bool STRIP_NOPROFILE = true;   // ← Set to false to keep -NoProfile
 const bool LOG_ENABLED = false;      // ← Set to true for debugging
 ```
 
 **Recommended settings:**
-- `STRIP_NOPROFILE = true` - Remove -NoProfile flag (your CimD module will load)
+- `STRIP_NOPROFILE = true` - Remove -NoProfile flag (profile WMI hooks will load)
 - `LOG_ENABLED = false` - Disable logging (better performance)
 
 Recompile if you changed anything.
@@ -122,7 +119,7 @@ The malware should now execute its second stage! 🎯
 
 ## Configuration Options
 
-### Option 1: Strip -NoProfile (Recommended)
+### Strip -NoProfile (Default: enabled)
 
 ```csharp
 const bool STRIP_NOPROFILE = true;
@@ -130,39 +127,11 @@ const bool STRIP_NOPROFILE = true;
 
 **How it works:**
 - Malware calls: `powershell.exe -NoProfile -Command "..."`
-- Wrapper calls: `powershell.exe -Command "..."` (no -NoProfile)
-- Your CimD module loads automatically
+- Wrapper calls: `powershell_quantum.exe -Command "..."` (flag removed)
+- Profile WMI hooks load automatically
 - VM detection returns "Dell Inc."
 
-**Pros:** Uses your existing CimD module, no DLL needed  
-**Cons:** Profile loading adds slight delay
-
-### Option 2: Keep -NoProfile, Use DLL Hook
-
-```csharp
-const bool STRIP_NOPROFILE = false;
-```
-
-**How it works:**
-- Malware calls: `powershell.exe -NoProfile -Command "..."`
-- Wrapper calls: `powershell.exe -NoProfile -Command "..."` (unchanged)
-- WMIHook.dll loads via wrapper
-- VM detection returns "Dell Inc." via DLL hook
-
-**Pros:** Faster, no profile loading  
-**Cons:** Requires WMIHook.dll to be deployed
-
-### Option 3: Both (Belt and Suspenders)
-
-```csharp
-const bool STRIP_NOPROFILE = true;  // Strip flag
-// AND have WMIHook.dll deployed     // DLL loads anyway
-```
-
-**Best of both worlds:**
-- CimD module loads (flag stripped)
-- DLL hook also active (backup)
-- Double protection against VM detection
+Set to `false` only if you need to pass `-NoProfile` through unchanged (e.g. for testing profile-independent scenarios).
 
 ---
 
@@ -247,7 +216,6 @@ C:\Users\illusionry\AppData\Local\Temp\temp\Z4kzp5ECtD5kBJCt.bat
 - When wrapper is called
 - Arguments received
 - Arguments stripped
-- DLL load success/failure
 - Calls to real PowerShell
 
 ---
@@ -341,10 +309,9 @@ C:\Users\dev-alpha.QUANTUM\AppData\Local\Temp\temp\Z4kzp5ECtD5kBJCt.bat
 ```
 
 Every PowerShell it spawns will:
-1. Load the WMI hook DLL
-2. Have -NoProfile stripped (if configured)
-3. Load your CimD module (if -NoProfile stripped)
-4. Return "Dell Inc." for VM checks
+1. Have -NoProfile stripped
+2. Load the profile WMI hooks
+3. Return "Dell Inc." for VM checks
 
 **Your malware should now execute properly!**
 

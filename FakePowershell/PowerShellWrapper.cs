@@ -12,18 +12,13 @@
 
 using System;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
 
 class PowerShellWrapper
 {
-    [DllImport("kernel32.dll", SetLastError = true)]
-    static extern IntPtr LoadLibrary(string dllToLoad);
-
     // Configuration - Modify these as needed
-    const string HOOK_DLL_PATH = @"C:\ProgramData\Quantum Research\Hooks\WMIHook.dll";
     const string REAL_POWERSHELL = @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell_quantum.exe";
     const bool STRIP_NOPROFILE = true;  // Set to false to pass -NoProfile through
     const bool LOG_ENABLED = false;      // Set to true for debugging
@@ -51,24 +46,6 @@ class PowerShellWrapper
     static int Main(string[] args)
     {
         Log($"PowerShell wrapper started with {args.Length} arguments");
-
-        // Load the WMI hook DLL first
-        if (File.Exists(HOOK_DLL_PATH))
-        {
-            IntPtr handle = LoadLibrary(HOOK_DLL_PATH);
-            if (handle == IntPtr.Zero)
-            {
-                Log("Failed to load hook DLL");
-            }
-            else
-            {
-                Log("Hook DLL loaded successfully");
-            }
-        }
-        else
-        {
-            Log($"Hook DLL not found at: {HOOK_DLL_PATH}");
-        }
 
         // Verify real PowerShell exists
         if (!File.Exists(REAL_POWERSHELL))

@@ -270,7 +270,6 @@ powershell -NoProfile -Command "if((Get-CimInstance Win32_ComputerSystem).Manufa
 
 **Wrapper behavior (`PowerShellWrapper.cs`):**
 - `STRIP_NOPROFILE = true` — removes `-NoProfile`, `-noprofile`, and `-nop` from args
-- Optionally loads `C:\ProgramData\Quantum Research\Hooks\WMIHook.dll` via `LoadLibrary`
 - Passes all other arguments through unchanged to `powershell_quantum.exe`
 - Preserves and returns the real exit code
 - Optional file logging at `C:\ProgramData\Quantum Research\Logs\powershell-wrapper.log`
