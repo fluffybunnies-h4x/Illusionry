@@ -188,7 +188,7 @@ powershell -NoProfile -Command "if((Get-CimInstance Win32_ComputerSystem).Manufa
 
 ### Test 4: Your Actual Malware
 ```batch
-C:\Users\dev-alpha.QUANTUM\AppData\Local\Temp\temp\Z4kzp5ECtD5kBJCt.bat
+C:\Users\illusionry\AppData\Local\Temp\temp\Z4kzp5ECtD5kBJCt.bat
 ```
 **Expected:** Second stage executes!
 
