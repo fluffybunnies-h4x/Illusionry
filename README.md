@@ -22,6 +22,99 @@ Malware typically uses several independent channels to detect a VM. Illusionry d
 
 ---
 
+## Building from Source
+
+Three components require compilation before deployment: the fake `systeminfo.exe` binaries (C), the fake `wmic.exe` binary (C), and the PowerShell wrapper (C#). All require the Microsoft Visual C++ toolchain.
+
+### Visual Studio Requirements
+
+**Required install:** [Visual Studio 2022](https://visualstudio.microsoft.com/) (Community edition is free) with the **"Desktop development with C++"** workload selected. This provides:
+
+| Tool | Purpose |
+|---|---|
+| `cl.exe` | MSVC C/C++ compiler — compiles all three `.c` source files |
+| `link.exe` | Linker (invoked automatically by `cl.exe /link`) |
+| `csc.exe` | C# compiler — compiles `PowerShellWrapper.cs` |
+| Windows SDK headers | `windows.h`, `winsock2.h`, `iphlpapi.h`, etc. |
+| Windows SDK libs | `advapi32.lib`, `iphlpapi.lib`, `ws2_32.lib` |
+
+Alternatively, install **Build Tools for Visual Studio 2022** (no IDE, compiler toolchain only) and select the same "Desktop development with C++" workload — this is the lighter-weight option for a dedicated analysis VM.
+
+**Critical:** All compile commands must be run from an **x64 Native Tools Command Prompt for VS 2022** (or the year-equivalent). This prompt is in the Start Menu under `Visual Studio 2022 →` and pre-configures `PATH`, `INCLUDE`, `LIB`, and `LIBPATH` so that `cl.exe`, the Windows SDK headers, and the import libraries are all found automatically. Running from a regular `cmd.exe` will produce `'cl' is not recognized` or missing header errors.
+
+To open it:
+```
+Start → Visual Studio 2022 → x64 Native Tools Command Prompt for VS 2022
+```
+
+Or search the Start Menu for `x64 Native Tools`.
+
+---
+
+### Compiling `fake_wmic.c`
+
+```batch
+cd FakeWMIC
+cl.exe /O2 /Fe:wmic.exe fake_wmic.c /link /SUBSYSTEM:CONSOLE advapi32.lib
+```
+
+| Flag | Meaning |
+|---|---|
+| `/O2` | Optimize for speed |
+| `/Fe:wmic.exe` | Output executable named `wmic.exe` |
+| `advapi32.lib` | Required for registry API calls (`RegOpenKeyExA`, `RegQueryValueExA`) |
+
+---
+
+### Compiling `fake_systeminfo` — Workstation
+
+```batch
+cd FakeSysteminfo\Workstation
+cl.exe /O2 /Fe:systeminfo.exe fake_systeminfo_workstations.c /link /SUBSYSTEM:CONSOLE advapi32.lib iphlpapi.lib ws2_32.lib
+```
+
+### Compiling `fake_systeminfo` — Server
+
+```batch
+cd FakeSysteminfo\Server
+cl.exe /O2 /Fe:systeminfo.exe fake_systeminfo_server.c /link /SUBSYSTEM:CONSOLE advapi32.lib iphlpapi.lib ws2_32.lib
+```
+
+| Flag / Lib | Meaning |
+|---|---|
+| `/O2` | Optimize for speed |
+| `/Fe:systeminfo.exe` | Output executable named `systeminfo.exe` |
+| `advapi32.lib` | Registry API |
+| `iphlpapi.lib` | IP Helper API — required for network adapter enumeration (`GetAdaptersInfo`) |
+| `ws2_32.lib` | Winsock2 — required for `winsock2.h` / `ws2tcpip.h` includes |
+
+---
+
+### Compiling `PowerShellWrapper.cs`
+
+The `BUILD-WRAPPER.bat` script handles this automatically when run from the correct prompt:
+
+```batch
+cd FakePowershell
+BUILD-WRAPPER.bat
+```
+
+Or manually:
+
+```batch
+csc /out:powershell.exe /platform:x64 /optimize+ PowerShellWrapper.cs
+```
+
+| Flag | Meaning |
+|---|---|
+| `/out:powershell.exe` | Output named `powershell.exe` |
+| `/platform:x64` | Compile as 64-bit — must match the system PowerShell architecture |
+| `/optimize+` | Enable optimizations |
+
+`csc.exe` is available in both the Developer Command Prompt and the x64 Native Tools prompt when Visual Studio is installed.
+
+---
+
 ## Deployment Order
 
 ### Stage 1 — Registry Patching (`windows_update.ps1`)
@@ -94,11 +187,18 @@ Source files:
 - Reads unique IDs (SerialNumber, SystemUUID, DiskSerial) from `HKLM\SOFTWARE\VMEvasion`
 - Returns spoofed output for: `csproduct`, `os`, `computersystem`, `cpu`, `bios`, `diskdrive`, `nic`, `baseboard`
 
+> See [Building from Source](#building-from-source) for compile commands and Visual Studio requirements.
+
+**Deploy** (run as Administrator from the project root, after copying the correct `systeminfo.exe` variant here):
+
 ```batch
-:: Run as Administrator from the appropriate Server or Workstation subdirectory
-cd FakeSysteminfo\Workstation
-copy systeminfo.exe ..\..
-cd ..\..
+:: Copy the correct variant to the project root first
+copy FakeSysteminfo\Workstation\systeminfo.exe .   :: workstation
+:: copy FakeSysteminfo\Server\systeminfo.exe .     :: server
+
+copy FakeWMIC\wmic.exe .
+
+:: Then deploy both
 deploy_fakes.bat
 ```
 
@@ -177,13 +277,15 @@ powershell -NoProfile -Command "if((Get-CimInstance Win32_ComputerSystem).Manufa
 
 **Deployment steps:**
 ```batch
-:: Step 1 — Build (from Developer Command Prompt or x64 Native Tools prompt)
+:: Step 1 — Build (from x64 Native Tools Command Prompt for VS 2022)
 cd FakePowershell
 BUILD-WRAPPER.bat
 
 :: Step 2 — Deploy (PowerShell as Administrator)
 .\Deploy-PowerShellWrapper.ps1
 ```
+
+> See [Building from Source](#building-from-source) for full `csc.exe` details and Visual Studio requirements.
 
 The deploy script backs up the original to `powershell_quantum.exe` and a timestamped copy in `C:\ProgramData\Quantum Research\Backups\` before overwriting.
 
